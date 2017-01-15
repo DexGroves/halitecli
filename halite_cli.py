@@ -1,15 +1,7 @@
 import pandas as pd
 import numpy as np
-import math
 import gzip
 import json
-
-
-class GameMap(pd.DataFrame):
-    _metadata = ['width', 'height']
-
-    def _constructor(self):
-        return GameMap
 
 
 class Replay(object):
@@ -18,7 +10,8 @@ class Replay(object):
         """
         Loads a replay file from disk, or creates a new replay.
 
-        Replay files may be gzip encoded (with a .gz filename). Because that's awesome. Keep your replays in gzip kids.
+        Replay files may be gzip encoded (with a .gz filename).
+        Because that's awesome. Keep your replays in gzip kids.
         """
 
         if ".gz" in filename:
@@ -50,12 +43,13 @@ class Replay(object):
 
 
 def render_map(board):
+    """Render a map as a ANSI-colored unicode string."""
     strength = board["strength"]
     owner = board["owner"]
     production = board["production"]
 
     data = np.stack([production, strength, owner], axis=2).astype(int)
-    colored = np.apply_along_axis(to_clrfrac, 2, data)
+    colored = np.apply_along_axis(as_colored_fraction, 2, data)
 
     return '\n'.join(np.apply_along_axis(' '.join, 1, colored))
 
@@ -64,10 +58,12 @@ COLORS = [u'\033[39m', u'\033[31m', u'\033[32m', u'\033[33m',
           u'\033[34m', u'\033[35m', u'\033[36m']
 
 
-def to_clrfrac(element):
+def as_colored_fraction(element):
     color = COLORS[element[2]]
     numerator = justify_int(element[1], 3, 'right')
     denominator = justify_int(element[2], 2, 'left')
+    if element[2] == 0 and element[1] == 0:
+        color = u'\033[30m'
     return color + numerator + '/' + denominator
 
 
