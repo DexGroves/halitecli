@@ -4,21 +4,6 @@ import math
 import gzip
 import json
 
-PLAYER_COLORS = [
-    [255, 255, 255],   # N
-    [50, 153, 187],  # 1 Blue
-    [199, 57, 11],     # 2 red
-    [255, 153, 0],
-    [191, 250, 55],
-    [32, 250, 55],
-    [191, 99, 99]
-]
-
-try:
-    from IPython.display import display, HTML
-except:
-    pass
-
 
 class GameMap(pd.DataFrame):
     _metadata = ['width', 'height']
@@ -54,55 +39,41 @@ class Replay(object):
         """
         Returns a game map for a given turn.
         """
-        production = pd.Series(np.array(self.data['productions']).flatten())
-        frame = np.array(self.data['frames'][turn]).reshape(
-            self.width * self.height, 2)
-        strength = pd.Series(frame[:, 1])
-        owner = pd.Series(frame[:, 0])
-        move = pd.Series(np.array(self.data['moves'][turn]).flatten())
-        gm = GameMap({"production": production,
-                      "strength": strength, "owner": owner, "move": move})
-        gm.width = self.width
-        gm.height = self.height
+        production = np.array(self.data['productions'])
+        frame = np.array(self.data['frames'][turn])
+        strength = frame[:, :, 1]
+        owner = frame[:, :, 0]
+        move = np.array(self.data['moves'][turn]).flatten()
+        gm = {"production": production, "strength": strength, "owner": owner,
+              "move": move, "width": self.width, "height": self.height}
         return gm
 
 
-def show_map(board, values=None):
-    html = []
-    html.append("""
-    <style>
-	table.map { border-spacing: 1px; border-collapse: separate; border:none; background: #333 }
-	table.map td { margin:0px; padding:0px;}
-	table.map td { width: 24px; height: 24px; text-align:center; padding:0px; margin:0px; vertical-align: middle; color: white; font-size:10px; border:none;}
-	table.map td .piece {background: white; margin:auto;}
-    </style>
-    """)
-    html.append("<table class=map>")
-    width = board.width
+def render_map(board):
     strength = board["strength"]
     owner = board["owner"]
     production = board["production"]
 
-    for y in range(0, board.height):
-        html.append("<tr>")
-        for x in range(0, width):
-            i = y * width + x
-            color = PLAYER_COLORS[owner[i]]
-            production_color = "rgba(%d, %d, %d, %0.3f)" % (
-                color[0], color[1], color[2], production[i] * 0.04 + 0.1)
-            strength_color = "rgb(%d, %d, %d)" % (color[0], color[1], color[2])
-            strength_size = math.sqrt(strength[i])
-            if values is not None:
-                if i in values.index:
-                    value = values[i]
-                else:
-                    value = ''
-            else:
-                value = "<div class=\"piece\" style=\"width: %0.1fpx; height: %0.1fpx; background: %s\"></div>" % (
-                    strength_size, strength_size, strength_color)
-            html.append("<td class=\"site\" style=\"background: %s\" title=\"s: %d p: %d\">%s</td>" %
-                        (production_color, strength[i], production[i], value))
-        html.append("</tr>")
-    html.append("</table>")
+    data = np.stack([production, strength, owner], axis=2).astype(int)
+    colored = np.apply_along_axis(to_clrfrac, 2, data)
 
-    display(HTML("\n".join(html)))
+    return '\n'.join(np.apply_along_axis(' '.join, 1, colored))
+
+
+COLORS = [u'\033[39m', u'\033[31m', u'\033[32m', u'\033[33m',
+          u'\033[34m', u'\033[35m', u'\033[36m']
+
+
+def to_clrfrac(element):
+    color = COLORS[element[2]]
+    numerator = justify_int(element[1], 3, 'right')
+    denominator = justify_int(element[2], 2, 'left')
+    return color + numerator + '/' + denominator
+
+
+def justify_int(element, to, how='left'):
+    s = str(element)
+    if how == 'left':
+        return s + ' ' * (to - len(s))
+    if how == 'right':
+        return ' ' * (to - len(s)) + s
