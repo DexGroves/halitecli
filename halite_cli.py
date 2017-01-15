@@ -54,14 +54,10 @@ def render_map(board):
     return '\n'.join(np.apply_along_axis(' '.join, 1, colored))
 
 
-COLORS = [u'\033[39m', u'\033[31m', u'\033[32m', u'\033[33m',
-          u'\033[34m', u'\033[35m', u'\033[36m']
-
-
 def as_colored_fraction(element):
-    color = COLORS[element[2]]
+    color = STRONG_COLORS[element[2]]
     numerator = justify_int(element[1], 3, 'right')
-    denominator = justify_int(element[2], 2, 'left')
+    denominator = justify_int(element[0], 2, 'left')
     if element[2] == 0 and element[1] == 0:
         color = u'\033[30m'
     return color + numerator + '/' + denominator
@@ -73,3 +69,25 @@ def justify_int(element, to, how='left'):
         return s + ' ' * (to - len(s))
     if how == 'right':
         return ' ' * (to - len(s)) + s
+
+
+
+COLORS = [
+    u'\033[39m',
+    u'\033[31m',
+    u'\033[32m',
+    u'\033[33m',
+    u'\033[34m',
+    u'\033[35m',
+    u'\033[36m'
+]
+
+STRONG_COLORS = [
+    u'\033[39m\033[49m',
+    u'\033[30m\033[42m',
+    u'\033[30m\033[43m',
+    u'\033[30m\033[44m',
+    u'\033[30m\033[45m',
+    u'\033[30m\033[46m',
+    u'\033[30m\033[47m'
+]
