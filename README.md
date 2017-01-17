@@ -8,7 +8,7 @@ Featuring up to eight amazing colours!
 ./render.py my-replay.hlt
 ```
 
-![Map output](https://raw.githubusercontent.com/DexGroves/halitenotebook/master/img/example.png)
+![Map output](https://raw.githubusercontent.com/DexGroves/halitenotebook/master/img/example2.png)
 
 ## Contributing
 
