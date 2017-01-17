@@ -1,14 +1,14 @@
-# Halite Notebook
+# Halite CLI
 
-Visualize Halite game information in Jupyter Notebook! 
+Visualize Halite game information in ~~Jupyter Notebook~~ the command line!
 
-	import halite as hlt
-	replay = hlt.Replay("replays/2065277-3109204898.hlt")  # Works on .hlt.gz files too
-	board = replay.map_at(0)
-	hlt.show_map(board)
-	hlt.show_map(board, board['strength']])
+Featuring up to eight amazing colours! 
 
-![Map output](http://leancoder-share.s3.amazonaws.com/paste/shedeimu.png)
+```sh
+./render.py my-replay.hlt
+```
+
+![Map output](https://raw.githubusercontent.com/DexGroves/halitenotebook/master/img/example.png)
 
 ## Contributing
 
