@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 import gzip
 import json
@@ -38,7 +37,8 @@ class Replay(object):
         owner = frame[:, :, 0]
         move = np.array(self.data['moves'][turn]).flatten()
         gm = {"production": production, "strength": strength, "owner": owner,
-              "move": move, "width": self.width, "height": self.height}
+              "move": move, "width": self.width, "height": self.height,
+              "num_frames": self.num_frames - 1}
         return gm
 
 
@@ -69,7 +69,6 @@ def justify_int(element, to, how='left'):
         return s + ' ' * (to - len(s))
     if how == 'right':
         return ' ' * (to - len(s)) + s
-
 
 
 COLORS = [
