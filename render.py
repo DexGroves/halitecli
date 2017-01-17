@@ -33,16 +33,39 @@ HELP_STRING = '. '.join([
 
 def main(stdscr):
     current_frame = 0
-    replay = Replay(sys.argv[1])
-    board = replay.map_at(current_frame, 0, 0)
-
-    dimx, dimy = board['height'] + 3, board['width'] * 7 + 2
     rollx, rolly = 0, 0
 
-    global screen
-    screen = stdscr.subwin(dimx, dimy, 0, 0)
-    screen.box()
+    try:
+        replay = Replay(sys.argv[1])
+    except IndexError:
+        raise IndexError(
+            "Missing argument. Run with ./render.py some_replay_file.hlt."
+        )
 
+    board = replay.map_at(current_frame, 0, 0)
+
+    dim_x, dim_y = board['height'] + 3, board['width'] * 7 + 2
+
+    # This doesn't work properly for some reason.
+    # max_y, max_x = stdscr.getmaxyx()
+
+    # if max_x < dim_x or max_y < dim_y:
+    #     raise TerminalSizeError(
+    #         ("Your terminal is too small :(. Resize to at least {}x{}")
+    #         .format(dim_x, dim_y)
+    #     )
+
+    global screen
+
+    try:
+        screen = stdscr.subwin(dim_x, dim_y, 0, 0)
+    except curses.error:
+        raise TerminalSizeError(
+            ("Your terminal seems too small. Resize to at least {}x{}")
+            .format(dim_x, dim_y)
+        )
+
+    screen.box()
     keypress = ''
     while keypress != ord('q'):
         board = replay.map_at(current_frame, rollx, rolly)
@@ -63,6 +86,7 @@ def main(stdscr):
             y + 2, 2, HELP_STRING.format(current_frame, board['num_frames'])
         )
 
+        # There must be a better way to do this
         keypress = stdscr.getch()
         if keypress == curses.KEY_LEFT:
             current_frame = max(0, current_frame - 1)
@@ -164,6 +188,11 @@ def setup_colors():
     curses.init_pair(6, curses.COLOR_BLACK, curses.COLOR_CYAN)
     curses.init_pair(7, curses.COLOR_BLACK, curses.COLOR_YELLOW)
     curses.init_pair(8, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+
+class TerminalSizeError(Exception):
+    """Your terminal is too small!"""
+    pass
 
 
 if __name__ == '__main__':
