@@ -3,13 +3,14 @@
 """http://gnosis.cx/publish/programming/charming_python_6.html"""
 
 
+import sys
 import curses
 import traceback
 import numpy as np
-import halite_cli as hlt
+from replay import Replay
 
 
-replay = hlt.Replay("hlt/blueonblue.hlt")  # TODO: argparse this
+replay = Replay(sys.argv[1])  # TODO: argparse this
 
 
 def stack_map(board):
@@ -41,10 +42,10 @@ def main(stdscr):
     board = replay.map_at(current_frame)
 
     global screen
-    screen = stdscr.subwin(board['height'] + 2, board['width'] * 6 + 2, 0, 0)
+    screen = stdscr.subwin(board['height'] + 3, board['width'] * 6 + 2, 0, 0)
     screen.box()
     # screen.hline(2, 1, curses.ACS_HLINE, 77)
-    screen.refresh()
+    # screen.refresh()
 
     keypress = ''
     while keypress != ord('q'):
@@ -57,12 +58,31 @@ def main(stdscr):
                 color = colors[x, y]
                 stdscr.addstr(y + 1, x * 6 + 1, fractions[x, y],
                               curses.color_pair(color + 1))
-        keypress = stdscr.getch()
+        stdscr.addstr(
+            y + 2, 2,
+            ('Turn {}/{}. ←/→ navigates. ↑/↓ to advance 10 turns. q to quit.'
+             .format(current_frame, board['num_frames']))
+        )
 
+        keypress = stdscr.getch()
         if keypress == curses.KEY_LEFT:
             current_frame = max(0, current_frame - 1)
         if keypress == curses.KEY_RIGHT:
             current_frame = min(board['num_frames'] - 1, current_frame + 1)
+        if keypress == curses.KEY_UP:
+            current_frame = max(0, current_frame - 10)
+        if keypress == curses.KEY_DOWN:
+            current_frame = min(board['num_frames'] - 1, current_frame + 10)
+
+
+def setup_colors():
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)
+    curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_BLUE)
+    curses.init_pair(4, curses.COLOR_BLACK, curses.COLOR_GREEN)
+    curses.init_pair(5, curses.COLOR_BLACK, curses.COLOR_MAGENTA)
+    curses.init_pair(6, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    curses.init_pair(7, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
 
 if __name__ == '__main__':
@@ -74,13 +94,7 @@ if __name__ == '__main__':
         curses.noecho()
         curses.cbreak()
         curses.start_color()
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)
-        curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_BLUE)
-        curses.init_pair(4, curses.COLOR_BLACK, curses.COLOR_GREEN)
-        curses.init_pair(5, curses.COLOR_BLACK, curses.COLOR_MAGENTA)
-        curses.init_pair(6, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(7, curses.COLOR_BLACK, curses.COLOR_YELLOW)
+        setup_colors()
 
         # In keypad mode, escape sequences for special keys
         # (like the cursor keys) will be interpreted and
