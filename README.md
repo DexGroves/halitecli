@@ -1,6 +1,6 @@
 # Halite CLI
 
-Visualize Halite game information in ~Jupyter Notebook~ the command line!
+Visualize Halite game information in ~~Jupyter Notebook~~ the command line!
 
 Featuring up to eight amazing colours! 
 
