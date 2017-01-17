@@ -1,19 +1,123 @@
 #!/usr/bin/env python
 
-"""http://gnosis.cx/publish/programming/charming_python_6.html"""
+"""
+Spartan command-line halite.io replay viewer.
+
+Pass a replay as the first argument and watch in wonder as your .hlt
+file is rendered in glorious octocolour.
+
+Demands a lot of horizontal character space ((7 * map's X-dimension )+ 2).
+
+Made with a little help from @DanielVF halitenotebook and
+http://gnosis.cx/publish/programming/charming_python_6.html
+"""
 
 
 import sys
+import json
+import gzip
 import curses
 import traceback
 import numpy as np
-from replay import Replay
 
 
-replay = Replay(sys.argv[1])  # TODO: argparse this
+def main(stdscr):
+    current_frame = 0
+    replay = Replay(sys.argv[1])
+    board = replay.map_at(current_frame, 0, 0)
+
+    dimx, dimy = board['height'] + 3, board['width'] * 7 + 2
+    rollx, rolly = 0, 0
+
+    global screen
+    screen = stdscr.subwin(dimx, dimy, 0, 0)
+    screen.box()
+
+    keypress = ''
+    while keypress != ord('q'):
+        board = replay.map_at(current_frame, rollx, rolly)
+        stacked = stack_map(board)
+        fractions = np.apply_along_axis(format_as_fraction, 2, stacked).T
+
+        for x in range(fractions.shape[0]):
+            for y in range(fractions.shape[1]):
+                if board['owner'][y, x] == 0 and board['strength'][y, x] == 0:
+                    color = curses.color_pair(8)
+                else:
+                    color = curses.color_pair(board['owner'][y, x] + 1)
+                stdscr.addstr(
+                    y + 1, x * 7 + 1, fractions[x, y], color
+                )
+
+        stdscr.addstr(
+            y + 2, 2,
+            ('Turn {}/{}. ←/→ navigates. ↑/↓ to advance 10 turns. wasd positions camera. q quits.'
+             .format(current_frame, board['num_frames']))
+        )
+
+        keypress = stdscr.getch()
+        if keypress == curses.KEY_LEFT:
+            current_frame = max(0, current_frame - 1)
+        elif keypress == curses.KEY_RIGHT:
+            current_frame = min(board['num_frames'] - 1, current_frame + 1)
+        elif keypress == curses.KEY_UP:
+            current_frame = max(0, current_frame - 10)
+        elif keypress == curses.KEY_DOWN:
+            current_frame = min(board['num_frames'] - 1, current_frame + 10)
+        elif keypress == ord('w'):
+            rolly += 1
+        elif keypress == ord('a'):
+            rollx += 1
+        elif keypress == ord('s'):
+            rolly -= 1
+        elif keypress == ord('d'):
+            rollx -= 1
+
+
+class Replay(object):
+    """Handle ETL of replay files and expose map_at to get
+    information about the game for a specific frame.
+    """
+
+    def __init__(self, filename=None):
+        if ".gz" in filename:
+            with gzip.open(filename, 'rb') as f:
+                data = json.load(f)
+        else:
+            with open(filename) as f:
+                data = json.load(f)
+
+        self.data = data
+        self.width = data["width"]
+        self.height = data["height"]
+        self.num_players = data["num_players"]
+        self.num_frames = data["num_frames"]
+        self.player_names = data["player_names"]
+
+    def map_at(self, turn, rollx, rolly):
+        """Return the map at a given turn. rollx and rolly can be
+        used to offset the arrays.
+        """
+        frame = np.array(self.data['frames'][turn])
+        production = np.array(self.data['productions'])
+        production = np.roll(np.roll(production, rollx, 1), rolly, 0)
+        strength = frame[:, :, 1]
+        strength = np.roll(np.roll(strength, rollx, 1), rolly, 0)
+        owner = frame[:, :, 0]
+        owner = np.roll(np.roll(owner, rollx, 1), rolly, 0)
+        gm = {
+            'production': production,
+            'strength': strength,
+            'owner': owner,
+            'width': self.width,
+            'height': self.height,
+            'num_frames': self.num_frames - 1
+        }
+        return gm
 
 
 def stack_map(board):
+    """Stack production, strength and owner to make fractions later."""
     strength = board["strength"]
     owner = board["owner"]
     production = board["production"]
@@ -22,13 +126,17 @@ def stack_map(board):
 
 
 def format_as_fraction(element):
+    """Format a 3D map representation from stack_map into a 2D
+    array of strings formatted as str/prod.
+    """
     numerator = justify_int(element[1], 3, 'right')
     denominator = justify_int(element[0], 2, 'left')
     str_ = numerator + '/' + denominator
-    return str_
+    return str_ + ' '
 
 
 def justify_int(element, to, how='left'):
+    """lpad or rpad an integer."""
     s = str(element)
     if how == 'left':
         return s + ' ' * (to - len(s))
@@ -36,46 +144,10 @@ def justify_int(element, to, how='left'):
         return ' ' * (to - len(s)) + s
 
 
-def main(stdscr):
-    # Frame the interface area at fixed VT100 size
-    current_frame = 0
-    board = replay.map_at(current_frame)
-
-    global screen
-    screen = stdscr.subwin(board['height'] + 3, board['width'] * 6 + 2, 0, 0)
-    screen.box()
-    # screen.hline(2, 1, curses.ACS_HLINE, 77)
-    # screen.refresh()
-
-    keypress = ''
-    while keypress != ord('q'):
-        board = replay.map_at(current_frame)
-        stacked = stack_map(board)
-        fractions = np.apply_along_axis(format_as_fraction, 2, stacked).T
-        colors = stacked[:, :, 2].T
-        for x in range(fractions.shape[0]):
-            for y in range(fractions.shape[1]):
-                color = colors[x, y]
-                stdscr.addstr(y + 1, x * 6 + 1, fractions[x, y],
-                              curses.color_pair(color + 1))
-        stdscr.addstr(
-            y + 2, 2,
-            ('Turn {}/{}. ←/→ navigates. ↑/↓ to advance 10 turns. q to quit.'
-             .format(current_frame, board['num_frames']))
-        )
-
-        keypress = stdscr.getch()
-        if keypress == curses.KEY_LEFT:
-            current_frame = max(0, current_frame - 1)
-        if keypress == curses.KEY_RIGHT:
-            current_frame = min(board['num_frames'] - 1, current_frame + 1)
-        if keypress == curses.KEY_UP:
-            current_frame = max(0, current_frame - 10)
-        if keypress == curses.KEY_DOWN:
-            current_frame = min(board['num_frames'] - 1, current_frame + 10)
-
-
 def setup_colors():
+    """Setup the colors for each player. Entry 8 is reserved for
+    zero-strength unowned squares.
+    """
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_BLUE)
@@ -83,6 +155,7 @@ def setup_colors():
     curses.init_pair(5, curses.COLOR_BLACK, curses.COLOR_MAGENTA)
     curses.init_pair(6, curses.COLOR_BLACK, curses.COLOR_CYAN)
     curses.init_pair(7, curses.COLOR_BLACK, curses.COLOR_YELLOW)
+    curses.init_pair(8, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
 
 if __name__ == '__main__':
