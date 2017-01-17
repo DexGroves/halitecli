@@ -44,7 +44,7 @@ def main(stdscr):
 
     board = replay.map_at(current_frame, 0, 0)
 
-    dim_x, dim_y = board['height'] + 3, board['width'] * 7 + 2
+    dim_x, dim_y = board['height'] + 4, board['width'] * 7 + 2
 
     # This doesn't work properly for some reason.
     # max_y, max_x = stdscr.getmaxyx()
@@ -82,8 +82,13 @@ def main(stdscr):
                     y + 1, x * 7 + 1, fractions[x, y], color
                 )
 
+        stdscr.addstr(y + 2, 2, '')  # Better way to position cursor?
+        for i, name in enumerate(replay.player_names):
+            stdscr.addstr(name, curses.color_pair(i + 2))
+            stdscr.addstr(' ')
+
         stdscr.addstr(
-            y + 2, 2, HELP_STRING.format(current_frame, board['num_frames'])
+            y + 3, 2, HELP_STRING.format(current_frame, board['num_frames'])
         )
 
         # There must be a better way to do this
@@ -124,7 +129,7 @@ class Replay(object):
         self.height = data["height"]
         self.num_players = data["num_players"]
         self.num_frames = data["num_frames"]
-        self.player_names = data["player_names"]
+        self.player_names = ['Shummie', 'DexGroves']  # data["player_names"]
 
     def map_at(self, turn, rollx, rolly):
         """Return the map at a given turn. rollx and rolly can be
