@@ -129,7 +129,7 @@ class Replay(object):
         self.height = data["height"]
         self.num_players = data["num_players"]
         self.num_frames = data["num_frames"]
-        self.player_names = ['Shummie', 'DexGroves']  # data["player_names"]
+        self.player_names = data["player_names"]
 
     def map_at(self, turn, rollx, rolly):
         """Return the map at a given turn. rollx and rolly can be
