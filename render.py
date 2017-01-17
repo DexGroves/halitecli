@@ -8,8 +8,9 @@ file is rendered in glorious octocolour.
 
 Demands a lot of horizontal character space ((7 * map's X-dimension )+ 2).
 
-Made with a little help from @DanielVF halitenotebook and
-http://gnosis.cx/publish/programming/charming_python_6.html
+Made with help from:
+    @DanielVF halitenotebook and
+    http://gnosis.cx/publish/programming/charming_python_6.html
 """
 
 
@@ -19,6 +20,15 @@ import gzip
 import curses
 import traceback
 import numpy as np
+
+
+HELP_STRING = '. '.join([
+    'Turn {}/{}',
+    '←/→ advances 1 turn',
+    '↑/↓ advances 10 turns',
+    '[wasd] positions camera',
+    'q quits.'
+])
 
 
 def main(stdscr):
@@ -50,9 +60,7 @@ def main(stdscr):
                 )
 
         stdscr.addstr(
-            y + 2, 2,
-            ('Turn {}/{}. ←/→ navigates. ↑/↓ to advance 10 turns. wasd positions camera. q quits.'
-             .format(current_frame, board['num_frames']))
+            y + 2, 2, HELP_STRING.format(current_frame, board['num_frames'])
         )
 
         keypress = stdscr.getch()
@@ -174,6 +182,7 @@ if __name__ == '__main__':
         # a special value like curses.KEY_LEFT will be returned
         stdscr.keypad(1)
         main(stdscr)                    # Enter the main loop
+
         # Set everything back to normal
         stdscr.keypad(0)
         curses.echo()
